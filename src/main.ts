@@ -97,11 +97,13 @@ function updateDOM(): void {
 
   if (!state.prayerTimes) return;
 
+  const current = state.prayerTimes.currentPrayer();
   const next = state.prayerTimes.nextPrayer();
 
   for (const key of PRAYER_KEYS) {
     $prayers[key].textContent = formatTime(state.prayerTimes[key]);
     const card = $prayers[key].parentElement!;
+    card.classList.toggle('current', key === current);
     card.classList.toggle('next', key === next);
   }
 }
