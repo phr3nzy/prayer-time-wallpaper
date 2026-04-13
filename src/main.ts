@@ -1,10 +1,10 @@
-import './style.css';
 import {
-  Coordinates,
   CalculationMethod,
   CalculationParameters,
+  Coordinates,
   PrayerTimes,
 } from 'adhan';
+import './style.css';
 
 declare global {
   interface Window {
@@ -159,4 +159,4 @@ window.__wpApply = handleProperties;
 
 recalc();
 updateDOM();
-setInterval(updateDOM, 60_000);
+setInterval(updateDOM, 1_000); // 1 second to ensure accuracy when displaying the correct prayer time
