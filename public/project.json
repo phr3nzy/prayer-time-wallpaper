@@ -1,0 +1,47 @@
+{
+  "file": "index.html",
+  "general": {
+    "properties": {
+      "latitude": {
+        "order": 0,
+        "text": "Latitude",
+        "type": "textinput",
+        "value": "21.4225"
+      },
+      "longitude": {
+        "order": 1,
+        "text": "Longitude",
+        "type": "textinput",
+        "value": "39.8262"
+      },
+      "calculationmethod": {
+        "order": 2,
+        "text": "Calculation Method",
+        "type": "combo",
+        "value": "MuslimWorldLeague",
+        "options": [
+          { "label": "Muslim World League", "value": "MuslimWorldLeague" },
+          { "label": "Egyptian", "value": "Egyptian" },
+          { "label": "Karachi", "value": "Karachi" },
+          { "label": "Umm al-Qura", "value": "UmmAlQura" },
+          { "label": "Dubai", "value": "Dubai" },
+          { "label": "Qatar", "value": "Qatar" },
+          { "label": "Kuwait", "value": "Kuwait" },
+          { "label": "Moonsighting Committee", "value": "MoonsightingCommittee" },
+          { "label": "Singapore", "value": "Singapore" },
+          { "label": "Turkey", "value": "Turkey" },
+          { "label": "Tehran", "value": "Tehran" },
+          { "label": "North America (ISNA)", "value": "NorthAmerica" }
+        ]
+      },
+      "use24hourformat": {
+        "order": 3,
+        "text": "24-Hour Format",
+        "type": "bool",
+        "value": true
+      }
+    }
+  },
+  "title": "Prayer Times",
+  "type": "web"
+}

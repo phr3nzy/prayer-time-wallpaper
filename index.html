@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Prayer Times</title>
+    <script>
+      window.__wpProps = null;
+      window.wallpaperPropertyListener = {
+        applyUserProperties: function(properties) {
+          if (window.__wpApply) {
+            window.__wpApply(properties);
+          } else {
+            window.__wpProps = Object.assign(window.__wpProps || {}, properties);
+          }
+        }
+      };
+    </script>
+  </head>
+  <body>
+    <main id="app">
+      <blockquote id="verse" dir="rtl" lang="ar">
+        <p>إِنَّ الصَّلَاةَ كَانَتْ عَلَى الْمُؤْمِنِينَ كِتَابًا مَّوْقُوتًا</p>
+        <cite>النساء: ١٠٣</cite>
+      </blockquote>
+      <header>
+        <div id="coordinates">Locating…</div>
+        <time id="clock">--:--</time>
+      </header>
+      <section id="prayers">
+        <div class="prayer" data-prayer="fajr">
+          <span class="label">Fajr</span>
+          <span class="time">--:--</span>
+        </div>
+        <div class="prayer" data-prayer="sunrise">
+          <span class="label">Sunrise</span>
+          <span class="time">--:--</span>
+        </div>
+        <div class="prayer" data-prayer="dhuhr">
+          <span class="label">Dhuhr</span>
+          <span class="time">--:--</span>
+        </div>
+        <div class="prayer" data-prayer="asr">
+          <span class="label">Asr</span>
+          <span class="time">--:--</span>
+        </div>
+        <div class="prayer" data-prayer="maghrib">
+          <span class="label">Maghrib</span>
+          <span class="time">--:--</span>
+        </div>
+        <div class="prayer" data-prayer="isha">
+          <span class="label">Isha</span>
+          <span class="time">--:--</span>
+        </div>
+      </section>
+    </main>
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>

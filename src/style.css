@@ -1,0 +1,121 @@
+:root {
+  --bg: #0a0a0a;
+  --fg: #e8e6e3;
+  --muted: #5a5a5a;
+  --accent: #d4a017;
+  --card-bg: #141414;
+  --border: #2a2a2a;
+}
+
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'JetBrains Mono', ui-monospace, monospace;
+  -webkit-font-smoothing: antialiased;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  gap: 4vh;
+  padding: 4vh 4vw;
+}
+
+#verse {
+  text-align: center;
+  max-width: 900px;
+}
+
+#verse p {
+  font-family: 'Amiri', 'Scheherazade New', 'Traditional Arabic', serif;
+  font-size: 1.8rem;
+  line-height: 1.8;
+  color: var(--accent);
+}
+
+#verse cite {
+  display: block;
+  font-style: normal;
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-top: 0.5vh;
+  letter-spacing: 0.05em;
+}
+
+header {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 1vh;
+}
+
+#coordinates {
+  font-size: 1.2rem;
+  color: var(--muted);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+#clock {
+  font-size: 6rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+#prayers {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2vw;
+  width: 100%;
+  max-width: 900px;
+}
+
+.prayer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.8vh;
+  padding: 2.5vh 2vw;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+}
+
+.prayer .label {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--muted);
+}
+
+.prayer .time {
+  font-size: 2rem;
+  font-weight: 600;
+}
+
+.prayer.next {
+  border-color: var(--accent);
+  background: #1a1608;
+}
+
+.prayer.next .label {
+  color: var(--accent);
+}
+
+.prayer.next .time {
+  color: var(--accent);
+}
