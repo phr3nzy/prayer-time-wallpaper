@@ -1,6 +1,6 @@
 {
   "contentrating": "Everyone",
-  "description": "Displays localized Islamic prayer times (Fajr, Sunrise, Dhuhr, Asr, Maghrib, Isha) calculated offline using astronomical algorithms. Features a Quranic verse header, current/next prayer highlights, 12 calculation methods, and configurable coordinates. Zero network requests -- runs 100% offline.",
+  "description": "Displays localized Islamic prayer times calculated offline using astronomical algorithms. Features English/Arabic prayer names, configurable coordinates, 12 calculation methods, 12/24-hour time, an optional animated sky, and sky quality controls for lower-powered hardware. Zero network requests -- runs 100% offline.",
   "file": "index.html",
   "general": {
     "properties": {
@@ -81,17 +81,62 @@
         "text": "24-Hour Format",
         "type": "bool",
         "value": true
+      },
+      "showsky": {
+        "index": 4,
+        "order": 4,
+        "text": "Show Sky",
+        "type": "bool",
+        "value": true
+      },
+      "language": {
+        "index": 5,
+        "order": 5,
+        "text": "Prayer Names Language",
+        "type": "combo",
+        "value": "en",
+        "options": [
+          {
+            "label": "English",
+            "value": "en"
+          },
+          {
+            "label": "Arabic",
+            "value": "ar"
+          }
+        ]
+      },
+      "skyquality": {
+        "index": 6,
+        "order": 6,
+        "text": "Sky Quality",
+        "type": "combo",
+        "value": "high",
+        "options": [
+          {
+            "label": "High",
+            "value": "high"
+          },
+          {
+            "label": "Medium",
+            "value": "medium"
+          },
+          {
+            "label": "Low",
+            "value": "low"
+          }
+        ]
       }
     }
   },
-  "preview": "preview.png",
+  "preview": "preview.jpg",
+  "ratingsex": "none",
+  "ratingviolence": "none",
   "tags": [
-    "Islam",
-    "Prayer Times",
-    "Islamic Prayer Times"
+    "Unspecified"
   ],
   "title": "Islamic Prayer Times",
   "type": "web",
-  "version": 1,
+  "version": 2,
   "visibility": "public"
 }
