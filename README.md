@@ -8,7 +8,9 @@ A dynamic desktop wallpaper for [Wallpaper Engine](https://www.wallpaperengine.i
 - 12 calculation methods (Muslim World League, Egyptian, Karachi, Umm al-Qura, and more)
 - Current prayer highlighted in green, next prayer highlighted in gold
 - Quranic verse from Surah An-Nisa (4:103) displayed at the top
+- English and Arabic prayer names
 - 12-hour / 24-hour time format toggle
+- Optional animated sky with quality controls for lower-powered hardware
 - Configurable coordinates via Wallpaper Engine properties panel
 - Dark, brutalist design with monospace typography
 
@@ -57,6 +59,21 @@ All settings are exposed in Wallpaper Engine's right-hand properties panel:
 | Longitude          | Text     | `39.8262` (Makkah)   | Geographic longitude.                            |
 | Calculation Method | Dropdown | Muslim World League  | One of 12 standard methods (Egyptian, Karachi, Umm al-Qura, Dubai, Qatar, Kuwait, Moonsighting Committee, Singapore, Turkey, Tehran, North America). |
 | 24-Hour Format     | Checkbox | On                   | Toggle between 24h and 12h time display.         |
+| Show Sky           | Checkbox | On                   | Enable or disable the animated sky renderer.      |
+| Prayer Names Language | Dropdown | English            | Switch prayer names between English and Arabic.   |
+| Sky Quality        | Dropdown | High                 | Choose High, Medium, or Low sky rendering quality. |
+
+## Release To Wallpaper Engine
+
+1. Run `npm run build`.
+2. Open Wallpaper Engine.
+3. Open the existing project from **Editor** / **Create Wallpaper** using the same local project that is already linked to the Steam Workshop item.
+4. Replace or confirm the project files point at the latest built output from `dist/`.
+5. Use **Steam** > **Publish Update** in the Wallpaper Engine editor.
+6. Add the release notes from `CHANGELOG.md` to the Workshop update notes.
+7. Publish the update.
+
+Subscribers receive the update automatically through Steam as long as you publish to the same Workshop item instead of creating a new item.
 
 ## Tech Stack
 
