@@ -1,70 +1,15 @@
-import {
-  CalculationMethod,
-  CalculationParameters,
-  Coordinates,
-  PrayerTimes,
-} from 'adhan';
-import { initSky } from './sky';
+import { startClock } from './clock';
+import type { Display, Language } from './display';
+import { initDisplay } from './display';
+import type { PrayerKey, PrayerSchedule } from './schedule';
+import { createSchedule, PRAYER_KEYS } from './schedule';
 import type { SkyQuality } from './sky';
+import { initSky } from './sky';
 import './style.css';
-
-declare global {
-  interface Window {
-    __wpProps: Record<string, { value: string | boolean | number }> | null;
-    __wpApply: ((props: Record<string, { value: string | boolean | number }>) => void) | undefined;
-    wallpaperPropertyListener: {
-      applyUserProperties: (props: Record<string, { value: string | boolean | number }>) => void;
-    };
-  }
-}
-
-const PRAYER_KEYS = [
-  'fajr',
-  'sunrise',
-  'dhuhr',
-  'asr',
-  'maghrib',
-  'isha',
-] as const;
-
-type PrayerKey = (typeof PRAYER_KEYS)[number];
-type Language = 'en' | 'ar';
+import type { AppConfig, ApplyResult } from './we-adapter';
+import { initWEAdapter } from './we-adapter';
 
 const SKY_QUALITIES = new Set<SkyQuality>(['high', 'medium', 'low']);
-
-const PRAYER_LABELS: Record<Language, Record<PrayerKey, string>> = {
-  en: {
-    fajr: 'Fajr',
-    sunrise: 'Sunrise',
-    dhuhr: 'Dhuhr',
-    asr: 'Asr',
-    maghrib: 'Maghrib',
-    isha: 'Isha',
-  },
-  ar: {
-    fajr: 'الفجر',
-    sunrise: 'الشروق',
-    dhuhr: 'الظهر',
-    asr: 'العصر',
-    maghrib: 'المغرب',
-    isha: 'العشاء',
-  },
-};
-
-const METHODS: Record<string, () => CalculationParameters> = {
-  MuslimWorldLeague: CalculationMethod.MuslimWorldLeague,
-  Egyptian: CalculationMethod.Egyptian,
-  Karachi: CalculationMethod.Karachi,
-  UmmAlQura: CalculationMethod.UmmAlQura,
-  Dubai: CalculationMethod.Dubai,
-  Qatar: CalculationMethod.Qatar,
-  Kuwait: CalculationMethod.Kuwait,
-  MoonsightingCommittee: CalculationMethod.MoonsightingCommittee,
-  Singapore: CalculationMethod.Singapore,
-  Turkey: CalculationMethod.Turkey,
-  Tehran: CalculationMethod.Tehran,
-  NorthAmerica: CalculationMethod.NorthAmerica,
-};
 
 const DEFAULT_LAT = 21.4225;
 const DEFAULT_LNG = 39.8262;
@@ -78,29 +23,11 @@ const state = {
   showSky: true,
   skyQuality: 'high' as SkyQuality,
   language: 'en' as Language,
-  prayerTimes: null as PrayerTimes | null,
-  lastDate: '',
+  schedule: null as PrayerSchedule | null,
 };
 
-const $clock = document.getElementById('clock')!;
-const $coords = document.getElementById('coordinates')!;
+const display: Display = initDisplay();
 const $sky = document.getElementById('sky') as HTMLCanvasElement;
-const $prayers = Object.fromEntries(
-  PRAYER_KEYS.map((key) => [
-    key,
-    document.querySelector<HTMLElement>(
-      `.prayer[data-prayer="${key}"] .time`,
-    )!,
-  ]),
-) as Record<PrayerKey, HTMLElement>;
-const $prayerLabels = Object.fromEntries(
-  PRAYER_KEYS.map((key) => [
-    key,
-    document.querySelector<HTMLElement>(
-      `.prayer[data-prayer="${key}"] .label`,
-    )!,
-  ]),
-) as Record<PrayerKey, HTMLElement>;
 let skyInstance: ReturnType<typeof initSky> | null = null;
 
 function setSkyVisible(visible: boolean): void {
@@ -109,9 +36,10 @@ function setSkyVisible(visible: boolean): void {
     $sky.style.display = '';
     skyInstance = initSky({
       canvas: $sky,
-      getPrayerTimes: () => state.prayerTimes,
       quality: state.skyQuality,
     });
+    const dl = state.schedule?.isDaylight() ?? true;
+    skyInstance.update(dl);
   } else {
     skyInstance?.destroy();
     skyInstance = null;
@@ -119,135 +47,149 @@ function setSkyVisible(visible: boolean): void {
   }
 }
 
-function updatePrayerLabels(): void {
-  document.documentElement.lang = state.language;
-  const isArabic = state.language === 'ar';
+// ── formatTime LUT ─────────────────────────────────────────────────────────
+// Precompute all 1440 minute-strings (24h + 12h) to eliminate the
+// ~15ms cold-path spike from toLocaleTimeString's ICU locale resolution.
+// Two-digit pad is ~100× faster than toLocaleTimeString in V8.
 
-  for (const key of PRAYER_KEYS) {
-    $prayerLabels[key].textContent = PRAYER_LABELS[state.language][key];
-    $prayerLabels[key].dir = isArabic ? 'rtl' : 'ltr';
-    $prayerLabels[key].lang = state.language;
+const pad2 = (n: number): string => (n < 10 ? '0' : '') + n;
+
+const MINUTES_PER_DAY = 1440;
+const time24LUT: string[] = new Array(MINUTES_PER_DAY);
+const time12LUT: string[] = new Array(MINUTES_PER_DAY);
+
+(function buildTimeLUT() {
+  for (let m = 0; m < MINUTES_PER_DAY; m++) {
+    const hh = Math.floor(m / 60);
+    const mm = m % 60;
+    time24LUT[m] = `${pad2(hh)}:${pad2(mm)}`;
+    const h12 = hh % 12 || 12;
+    const ampm = hh < 12 ? ' AM' : ' PM';
+    time12LUT[m] = `${pad2(h12)}:${pad2(mm)}${ampm}`;
   }
-}
+})();
 
-function todayKey(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+function minuteOfDay(date: Date): number {
+  return date.getHours() * 60 + date.getMinutes();
 }
 
 function formatTime(date: Date): string {
-  return date.toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: !state.use24Hour,
-  });
+  const m = minuteOfDay(date);
+  return state.use24Hour ? time24LUT[m]! : time12LUT[m]!;
 }
 
-function recalc(): void {
-  const coords = new Coordinates(state.lat, state.lng);
-  const factory = METHODS[state.method] ?? CalculationMethod.MuslimWorldLeague;
-  state.prayerTimes = new PrayerTimes(coords, new Date(), factory());
-  state.lastDate = todayKey();
+function refreshSchedule(): void {
+  state.schedule = createSchedule(state.lat, state.lng, state.method);
 }
+
+// ── dirty-tracked DOM ───────────────────────────────────────────────────────
+// Store last-rendered values to skip DOM writes when nothing changed.
+// Clock changes every minute; prayer times change daily; coords never change
+// after init. This eliminates ~99% of textContent/classList mutations per tick.
+
+const prevRendered = {
+  clock: '',
+  coords: '',
+  times: {} as Record<PrayerKey, string>,
+  current: null as PrayerKey | null,
+  next: null as PrayerKey | null,
+};
 
 function updateDOM(): void {
-  if (todayKey() !== state.lastDate) recalc();
-
-  $clock.textContent = formatTime(new Date());
+  const clockTime = formatTime(new Date());
+  if (clockTime !== prevRendered.clock) {
+    display.setClock(clockTime);
+    prevRendered.clock = clockTime;
+  }
 
   const latDir = state.lat >= 0 ? 'N' : 'S';
   const lngDir = state.lng >= 0 ? 'E' : 'W';
-  $coords.textContent = `${Math.abs(state.lat).toFixed(4)}°${latDir}, ${Math.abs(state.lng).toFixed(4)}°${lngDir}`;
+  const coordsText = `${Math.abs(state.lat).toFixed(4)}°${latDir}, ${Math.abs(state.lng).toFixed(4)}°${lngDir}`;
+  if (coordsText !== prevRendered.coords) {
+    display.setCoords(coordsText);
+    prevRendered.coords = coordsText;
+  }
 
-  if (!state.prayerTimes) return;
+  const schedule = state.schedule;
+  if (!schedule) return;
 
-  const current = state.prayerTimes.currentPrayer();
-  const next = state.prayerTimes.nextPrayer();
+  const current = schedule.current();
+  const next = schedule.next();
 
+  // Only re-render prayer cards if current/next transitions or times changed
+  let prayerChanged = current !== prevRendered.current || next !== prevRendered.next;
+  const formatted = {} as Record<PrayerKey, string>;
   for (const key of PRAYER_KEYS) {
-    $prayers[key].textContent = formatTime(state.prayerTimes[key]);
-    const card = $prayers[key].parentElement!;
-    card.classList.toggle('current', key === current);
-    card.classList.toggle('next', key === next);
+    formatted[key] = formatTime(schedule.times[key]);
+    if (formatted[key] !== prevRendered.times[key]) {
+      prevRendered.times[key] = formatted[key];
+      prayerChanged = true;
+    }
+  }
+
+  if (prayerChanged) {
+    display.setPrayerTimes(formatted, current, next);
+    prevRendered.current = current;
+    prevRendered.next = next;
   }
 }
 
-function handleProperties(properties: Record<string, { value: string | boolean | number }>): void {
-  let changed = false;
-
-  if (properties.latitude) {
-    const v = parseFloat(String(properties.latitude.value));
-    if (!Number.isNaN(v)) {
-      state.lat = v;
-      state.coordsFromWE = true;
-      changed = true;
-    }
-  }
-
-  if (properties.longitude) {
-    const v = parseFloat(String(properties.longitude.value));
-    if (!Number.isNaN(v)) {
-      state.lng = v;
-      state.coordsFromWE = true;
-      changed = true;
-    }
-  }
-
-  if (properties.calculationmethod) {
-    const v = String(properties.calculationmethod.value);
-    if (v in METHODS) {
-      state.method = v;
-      changed = true;
-    }
-  }
-
-  if (properties.use24hourformat) {
-    state.use24Hour = properties.use24hourformat.value === true;
-    changed = true;
-  }
-
-  if (properties.showsky !== undefined) {
-    const newVal = properties.showsky.value === true;
-    if (newVal !== state.showSky) {
-      state.showSky = newVal;
-      setSkyVisible(state.showSky);
-    }
-  }
-
-  if (properties.skyquality) {
-    const skyQuality = String(properties.skyquality.value) as SkyQuality;
-    if (SKY_QUALITIES.has(skyQuality) && skyQuality !== state.skyQuality) {
-      state.skyQuality = skyQuality;
-      if (state.showSky) setSkyVisible(true);
-    }
-  }
-
-  if (properties.language) {
-    const language = String(properties.language.value);
-    if (language === 'en' || language === 'ar') {
-      state.language = language;
-      updatePrayerLabels();
-    }
-  }
-
-  if (changed) {
-    recalc();
-    updateDOM();
-  }
+function tick(): void {
+  const dl = state.schedule?.isDaylight() ?? true;
+  skyInstance?.update(dl);
+  updateDOM();
 }
 
-// Drain any properties WE fired before this module executed
-if (window.__wpProps) {
-  handleProperties(window.__wpProps);
-  window.__wpProps = null;
+function applyConfig(config: AppConfig): ApplyResult {
+  const result: ApplyResult = { scheduleChanged: false, skyToggled: false, langChanged: false };
+
+  if (config.lat !== undefined) {
+    state.lat = config.lat;
+    state.coordsFromWE = true;
+    result.scheduleChanged = true;
+  }
+  if (config.lng !== undefined) {
+    state.lng = config.lng;
+    state.coordsFromWE = true;
+    result.scheduleChanged = true;
+  }
+  if (config.method !== undefined) {
+    state.method = config.method;
+    result.scheduleChanged = true;
+  }
+  if (config.use24Hour !== undefined) {
+    state.use24Hour = config.use24Hour;
+  }
+  if (config.showSky !== undefined && config.showSky !== state.showSky) {
+    state.showSky = config.showSky;
+    result.skyToggled = true;
+  }
+  if (config.skyQuality !== undefined) {
+    const sq = config.skyQuality;
+    if (SKY_QUALITIES.has(sq) && sq !== state.skyQuality) {
+      state.skyQuality = sq;
+      if (state.showSky) result.skyToggled = true;
+    }
+  }
+  if (config.language !== undefined) {
+    state.language = config.language;
+    result.langChanged = true;
+  }
+
+  return result;
 }
 
-// Wire future WE property changes directly to our handler
-window.__wpApply = handleProperties;
+initWEAdapter((config) => {
+  const result = applyConfig(config);
+  if (result.scheduleChanged) refreshSchedule();
+  updateDOM();
+  if (result.skyToggled) setSkyVisible(state.showSky);
+  if (result.langChanged) display.setLanguage(state.language);
+});
 
-recalc();
-updatePrayerLabels();
+refreshSchedule();
+display.setLanguage(state.language);
 updateDOM();
-setInterval(updateDOM, 1_000); // 1 second to ensure accuracy when displaying the correct prayer time
+startClock(tick);
 
 setSkyVisible(state.showSky);

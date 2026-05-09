@@ -1,5 +1,3 @@
-import { PrayerTimes } from 'adhan';
-
 interface ColorStop {
   stop: number;
   r: number;
@@ -114,19 +112,18 @@ function timeToArcAngle(t: number): number {
 
 export interface SkyOptions {
   canvas: HTMLCanvasElement;
-  getPrayerTimes: () => PrayerTimes | null;
   getNow?: () => Date;
   quality?: SkyQuality;
 }
 
-export function initSky(opts: SkyOptions): { destroy: () => void } {
-  const { canvas, getPrayerTimes, getNow = () => new Date() } = opts;
+export function initSky(opts: SkyOptions): { destroy: () => void; update: (isDaylight: boolean) => void } {
+  const { canvas, getNow = () => new Date() } = opts;
   const config = QUALITY_CONFIG[opts.quality ?? DEFAULT_QUALITY];
   const tileSize = config.tileSize;
   const tileDraw = tileSize - 1; // Preserves 1px grout gap.
   const frameMs = 1000 / config.fpsCap;
   const ctx = canvas.getContext('2d')!;
-  if (!ctx) return { destroy: () => { } };
+  if (!ctx) return { destroy: () => { }, update: () => { } };
 
 
   // ── tile typed arrays (rebuilt on resize) ─────────────────────────────────
@@ -155,6 +152,7 @@ export function initSky(opts: SkyOptions): { destroy: () => void } {
   let dpr = 1, cssW = 0, cssH = 0;
   let drawSz = 0, lastFrame = 0, rafId = 0;
   let resizeObserver: ResizeObserver | null = null;
+  let isDaylight = true;
 
   // ── resize ─────────────────────────────────────────────────────────────────
   function resize(): void {
@@ -360,16 +358,8 @@ export function initSky(opts: SkyOptions): { destroy: () => void } {
     const sx = cx + (R - 16) * Math.cos(sunAngle);
     const sy = baseY - (R - 16) * Math.sin(sunAngle);
 
-    const pt = getPrayerTimes();
-    if (pt) {
-      const sunriseT = (pt.sunrise.getHours() + pt.sunrise.getMinutes() / 60) / 24;
-      const sunsetT = (pt.maghrib.getHours() + pt.maghrib.getMinutes() / 60) / 24;
-      if (tNow >= sunriseT && tNow < sunsetT) drawSun(sx, sy, 10);
-      else drawMoon(sx, sy, 10);
-    } else {
-      if (tNow > 0.26 && tNow < 0.78) drawSun(sx, sy, 10);
-      else drawMoon(sx, sy, 10);
-    }
+    if (isDaylight) drawSun(sx, sy, 10);
+    else drawMoon(sx, sy, 10);
   }
 
   rafId = requestAnimationFrame(frame);
@@ -379,6 +369,9 @@ export function initSky(opts: SkyOptions): { destroy: () => void } {
       cancelAnimationFrame(rafId);
       window.removeEventListener('resize', resize);
       resizeObserver?.disconnect();
+    },
+    update(daylight: boolean) {
+      isDaylight = daylight;
     },
   };
 }
